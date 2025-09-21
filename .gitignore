@@ -1,0 +1,12 @@
+.vscode/*
+!.vscode/launch.json
+venv
+.env
+.venv
+xx_*
+angle_net.pt
+data.npz
+scaler.json
+__pycache__
+*.kml
+
