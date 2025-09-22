@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenAI Math Chat</title>
+
+    <!-- Marked.js for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- KaTeX for Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .chat-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .messages {
+            height: 500px;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-message {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 18px 18px 5px 18px;
+            margin-left: auto;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+
+        .ai-message {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 18px 18px 18px 5px;
+            max-width: 85%;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            word-wrap: break-word;
+        }
+
+        .ai-message h1, .ai-message h2, .ai-message h3 {
+            color: #2c3e50;
+            margin: 15px 0 10px 0;
+        }
+
+        .ai-message p {
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .ai-message pre {
+            background: #f4f4f4;
+            border-radius: 8px;
+            padding: 15px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+
+        .ai-message code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .ai-message ul, .ai-message ol {
+            margin-left: 20px;
+            margin-bottom: 10px;
+        }
+
+        .input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        #messageInput {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        #messageInput:focus {
+            border-color: #667eea;
+        }
+
+        #sendButton {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        #sendButton:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        #sendButton:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .katex-display {
+            margin: 15px 0 !important;
+            overflow-x: auto;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧮 OpenAI Math Chat</h1>
+        <div class="chat-container">
+            <div class="messages" id="messages">
+                <div class="message">
+                    <div class="ai-message" id="welcome-message">
+                        <p>Hello! I can help you with mathematical questions. I render LaTeX formulas beautifully!</p>
+                        <p>Example: The quadratic formula is $$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$</p>
+                        <p>Try asking me about:</p>
+                        <p>( \mathcal{L} ) of a function ( f(t) ) defined for ( t \geq 0 )</p>
+                        <ul>
+                            <li>Calculus concepts and derivatives</li>
+                            <li>Linear algebra and matrices</li>
+                            <li>Statistics and probability</li>
+                            <li>Any mathematical proof or theorem</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="input-area">
+                <div class="input-group">
+                    <input type="text" id="messageInput" placeholder="Ask a math question...">
+                    <button id="sendButton">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Wait for libraries to load
+        window.addEventListener('DOMContentLoaded', function() {
+            // Configure marked
+            marked.setOptions({
+                breaks: true,
+                gfm: true,
+                headerIds: false,
+                mangle: false
+            });
+
+            // Render initial math example
+            setTimeout(() => {
+                renderMathInElement(document.getElementById('welcome-message'), {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ],
+                    throwOnError: false
+                });
+            }, 100);
+
+            // Set up event listeners
+            document.getElementById('sendButton').addEventListener('click', sendMessage);
+            document.getElementById('messageInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') sendMessage();
+            });
+
+            // Focus input
+            document.getElementById('messageInput').focus();
+        });
+
+        let accumulatedContent = '';
+
+        function processContent(text) {
+            // Temporarily store LaTeX expressions to protect them from markdown parsing
+            const expressions = [];
+            let processed = text;
+
+            // Replace display math with placeholders
+            processed = processed.replace(/\$\$(.*?)\$\$/gs, function(match) {
+                expressions.push(match);
+                return '%%%MATH_' + (expressions.length - 1) + '%%%';
+            });
+
+            // Replace inline math with placeholders
+            processed = processed.replace(/\$([^\$]+?)\$/g, function(match) {
+                expressions.push(match);
+                return '%%%MATH_' + (expressions.length - 1) + '%%%';
+            });
+
+            // Parse markdown
+            let html = marked.parse(processed);
+
+            // Restore LaTeX expressions
+            for (let i = 0; i < expressions.length; i++) {
+                html = html.replace('%%%MATH_' + i + '%%%', expressions[i]);
+            }
+
+            return html;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const button = document.getElementById('sendButton');
+            const messagesDiv = document.getElementById('messages');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            // Add user message
+            const userMsg = document.createElement('div');
+            userMsg.className = 'message';
+            userMsg.innerHTML = '<div class="user-message">' + escapeHtml(message) + '</div>';
+            messagesDiv.appendChild(userMsg);
+
+            // Clear input and disable button
+            input.value = '';
+            button.disabled = true;
+
+            // Create AI message container
+            const aiMsg = document.createElement('div');
+            aiMsg.className = 'message';
+            const aiContent = document.createElement('div');
+            aiContent.className = 'ai-message';
+            aiMsg.appendChild(aiContent);
+            messagesDiv.appendChild(aiMsg);
+
+            // Reset accumulated content
+            accumulatedContent = '';
+
+            // Scroll to bottom
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({message: message})
+                });
+
+                if (!response.ok) {
+                    throw new Error('Request failed: ' + response.statusText);
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const {done, value} = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = line.slice(6);
+                            if (data === '[DONE]') continue;
+
+                            try {
+                                const json = JSON.parse(data);
+                                if (json.content) {
+                                    accumulatedContent += json.content;
+
+                                    // Process and display content
+                                    aiContent.innerHTML = processContent(accumulatedContent);
+
+                                    // Render math
+                                    renderMathInElement(aiContent, {
+                                        delimiters: [
+                                            {left: '$$', right: '$$', display: true},
+                                            {left: '$', right: '$', display: false}
+                                        ],
+                                        throwOnError: false
+                                    });
+
+                                    // Scroll to bottom
+                                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                                }
+                                if (json.error) {
+                                    throw new Error(json.error);
+                                }
+                            } catch (e) {
+                                if (e.message && e.message.includes('JSON')) {
+                                    console.log('Skipping non-JSON line:', line);
+                                } else {
+                                    throw e;
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                aiContent.innerHTML = '<div class="error-message">Error: ' + escapeHtml(error.message) + '</div>';
+            } finally {
+                button.disabled = false;
+                input.focus();
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
