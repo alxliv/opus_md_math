@@ -183,7 +183,7 @@
                         <p>Hello! I can help you with mathematical questions. I render LaTeX formulas beautifully!</p>
                         <p>Example: The quadratic formula is $$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$</p>
                         <p>Try asking me about:</p>
-                        <p>( \mathcal{L} ) of a function ( f(t) ) defined for ( t \geq 0 )</p>
+                        <p>\( \mathcal{L} \) of a function \( f(t) \) defined for \( t \geq 0 \)</p>
                         <ul>
                             <li>Calculus concepts and derivatives</li>
                             <li>Linear algebra and matrices</li>
@@ -218,7 +218,9 @@
                 renderMathInElement(document.getElementById('welcome-message'), {
                     delimiters: [
                         {left: '$$', right: '$$', display: true},
-                        {left: '$', right: '$', display: false}
+                        {left: '$', right: '$', display: false},
+                        {left: '\\(', right: '\\)', display: false},
+                        {left: '\\[', right: '\\]', display: true}
                     ],
                     throwOnError: false
                 });
@@ -242,13 +244,25 @@
             let processed = text;
 
             // Replace display math with placeholders
-            processed = processed.replace(/\$\$(.*?)\$\$/gs, function(match) {
+            processed = processed.replace(/\$\$([\s\S]*?)\$\$/g, function(match) {
                 expressions.push(match);
                 return '%%%MATH_' + (expressions.length - 1) + '%%%';
             });
 
             // Replace inline math with placeholders
             processed = processed.replace(/\$([^\$]+?)\$/g, function(match) {
+                expressions.push(match);
+                return '%%%MATH_' + (expressions.length - 1) + '%%%';
+            });
+
+            // Protect \( ... \) inline math
+            processed = processed.replace(/\\\(([\s\S]*?)\\\)/g, function(match) {
+                expressions.push(match);
+                return '%%%MATH_' + (expressions.length - 1) + '%%%';
+            });
+
+            // Protect \[ ... \] display math
+            processed = processed.replace(/\\\[([\s\S]*?)\\\]/g, function(match) {
                 expressions.push(match);
                 return '%%%MATH_' + (expressions.length - 1) + '%%%';
             });
@@ -334,7 +348,9 @@
                                     renderMathInElement(aiContent, {
                                         delimiters: [
                                             {left: '$$', right: '$$', display: true},
-                                            {left: '$', right: '$', display: false}
+                                            {left: '$', right: '$', display: false},
+                                            {left: '\\(', right: '\\)', display: false},
+                                            {left: '\\[', right: '\\]', display: true}
                                         ],
                                         throwOnError: false
                                     });
@@ -357,6 +373,7 @@
                 }
             } catch (error) {
                 console.error('Error:', error);
+                const aiContent = aiMsg.querySelector('.ai-message');
                 aiContent.innerHTML = '<div class="error-message">Error: ' + escapeHtml(error.message) + '</div>';
             } finally {
                 button.disabled = false;

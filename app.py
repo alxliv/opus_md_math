@@ -40,8 +40,7 @@ else:
 # Request model
 class ChatRequest(BaseModel):
     message: str
-    model: str = "gpt-4o-mini"
-
+    model: str = "gpt-4o-mini" # "gpt-3.5-turbo"  # "gpt-4-turbo" # gpt-5-mini" # "gpt-4o"
 
 @app.get("/", response_class=HTMLResponse)
 async def index():
@@ -68,8 +67,7 @@ async def stream_openai_response(message: str, model: str) -> AsyncGenerator[str
                     "content": message
                 }
             ],
-            stream=True,
-            temperature=0.7
+            stream=True
         )
 
         async for chunk in stream:
@@ -101,6 +99,8 @@ async def chat(request: ChatRequest):
 if __name__ == "__main__":
     import uvicorn
 # try "Explain Laplace transform"
+# What is Heaviside step function?
+
     print("=" * 60)
     if not api_key:
         print("⚠️  WARNING: OPENAI_API_KEY not found!")
