@@ -8,9 +8,8 @@ with AI, featuring LaTeX rendering and streaming responses.
 Required packages: pip install fastapi uvicorn openai python-dotenv
 """
 
+import asyncio
 import os
-import json
-import logging
 from pathlib import Path
 from typing import AsyncGenerator, Optional
 from contextlib import asynccontextmanager
@@ -20,13 +19,17 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from openai import AsyncOpenAI
+from openai.types.chat import ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam
 from dotenv import load_dotenv
+from my_logger import setup_logger;
 
-# Configure logging to match uvicorn style with colors
-import uvicorn.logging
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("uvicorn")
+logger = setup_logger()
+# Example usage
+logger.debug("Debugging message")
+logger.info("Information message")
+logger.warning("Warning message")
+logger.error("Error message")
+logger.critical("Critical error!")
 
 # Constants
 DEFAULT_MODEL = "gpt-4o-mini"
@@ -154,22 +157,22 @@ async def stream_openai_response(message: str, model: str) -> AsyncGenerator[str
 
     try:
         messages = [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": message}
+            ChatCompletionSystemMessageParam(role="system", content=SYSTEM_PROMPT),
+            ChatCompletionUserMessageParam(role="user", content=message)
         ]
 
         stream = await client.chat.completions.create(
             model=model,
             messages=messages,
             stream=True,
-            temperature=0.7,
             max_tokens=2000
         )
 
         async for chunk in stream:
             if chunk.choices and chunk.choices[0].delta.content:
                 content = chunk.choices[0].delta.content
-                response = StreamResponse(content=content)
+                response = StreamResponse(content=content, error=None)
+                # await asyncio.sleep(0.2)  # Simulate network delay
                 yield f"data: {response.model_dump_json()}\n\n"
 
         yield "data: [DONE]\n\n"
