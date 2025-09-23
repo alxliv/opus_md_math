@@ -41,6 +41,12 @@
                 </div>
             </div>
             <div class="input-area">
+                <div class="model-selector">
+                    <label for="modelSelect">Model:</label>
+                    <select id="modelSelect" aria-label="OpenAI model">
+                        <option value="" disabled selected>Loading models...</option>
+                    </select>
+                </div>
                 <div class="input-group">
                     <input type="text" id="messageInput" placeholder="Ask a math question...">
                     <button id="sendButton">Send</button>
@@ -73,6 +79,9 @@
                 });
             }, 100);
 
+            // Load available models from the server
+            loadModels();
+
             // Set up event listeners
             document.getElementById('sendButton').addEventListener('click', sendMessage);
             document.getElementById('messageInput').addEventListener('keypress', function(e) {
@@ -84,6 +93,49 @@
         });
 
         let accumulatedContent = '';
+
+        async function loadModels() {
+            const modelSelect = document.getElementById('modelSelect');
+            if (!modelSelect) return;
+
+            modelSelect.disabled = true;
+            modelSelect.dataset.disablePermanent = 'false';
+
+            try {
+                const response = await fetch('/models');
+                if (!response.ok) {
+                    throw new Error('Failed to load models');
+                }
+
+                const data = await response.json();
+                if (!data || !Array.isArray(data.models) || data.models.length === 0) {
+                    throw new Error('No models available');
+                }
+
+                modelSelect.innerHTML = '';
+                data.models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model;
+                    option.textContent = model;
+                    modelSelect.appendChild(option);
+                });
+
+                const defaultModel = data.default_model && data.models.includes(data.default_model)
+                    ? data.default_model
+                    : data.models[0];
+
+                modelSelect.value = defaultModel;
+                modelSelect.dataset.defaultModel = defaultModel;
+                delete modelSelect.dataset.disablePermanent;
+                modelSelect.disabled = false;
+            } catch (error) {
+                console.error('Failed to load models:', error);
+                modelSelect.innerHTML = '<option value="" disabled selected>Models unavailable</option>';
+                modelSelect.dataset.disablePermanent = 'true';
+                modelSelect.dataset.defaultModel = '';
+                modelSelect.disabled = true;
+            }
+        }
 
         function processContent(text) {
             // Temporarily store LaTeX expressions to protect them from markdown parsing
@@ -128,6 +180,7 @@
         async function sendMessage() {
             const input = document.getElementById('messageInput');
             const button = document.getElementById('sendButton');
+            const modelSelect = document.getElementById('modelSelect');
             const messagesDiv = document.getElementById('messages');
             const message = input.value.trim();
 
@@ -142,6 +195,9 @@
             // Clear input and disable button
             input.value = '';
             button.disabled = true;
+            if (modelSelect && modelSelect.dataset.disablePermanent !== 'true') {
+                modelSelect.disabled = true;
+            }
 
             // Create AI message container
             const aiMsg = document.createElement('div');
@@ -158,10 +214,21 @@
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
             try {
+                const payload = { message: message };
+                const selectedModel = modelSelect && modelSelect.value
+                    ? modelSelect.value
+                    : (modelSelect && modelSelect.dataset.defaultModel
+                        ? modelSelect.dataset.defaultModel
+                        : undefined);
+
+                if (selectedModel) {
+                    payload.model = selectedModel;
+                }
+
                 const response = await fetch('/chat', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({message: message})
+                    body: JSON.stringify(payload)
                 });
 
                 if (!response.ok) {
@@ -224,6 +291,10 @@
                 aiContent.innerHTML = '<div class="error-message">Error: ' + escapeHtml(error.message) + '</div>';
             } finally {
                 button.disabled = false;
+                if (modelSelect) {
+                    const shouldRemainDisabled = modelSelect.dataset.disablePermanent === 'true';
+                    modelSelect.disabled = shouldRemainDisabled;
+                }
                 input.focus();
             }
         }
