@@ -254,9 +254,11 @@ async def list_models():
     if DEFAULT_MODEL not in AVAILABLE_MODELS:
         logger.warning("DEFAULT_MODEL is not in AVAILABLE_MODELS; using default fallback")
 
+    sorted_models = sorted(AVAILABLE_MODELS)
+
     return ModelsResponse(
-        models=list(AVAILABLE_MODELS),
-        default_model=DEFAULT_MODEL if DEFAULT_MODEL in AVAILABLE_MODELS else list(AVAILABLE_MODELS)[0]
+        models=sorted_models,
+        default_model=DEFAULT_MODEL if DEFAULT_MODEL in AVAILABLE_MODELS else sorted_models[0]
     )
 
 def print_startup_info(config: Config):
