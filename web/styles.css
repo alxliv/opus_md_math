@@ -105,6 +105,35 @@ h1 {
     border-top: 1px solid #e0e0e0;
 }
 
+.model-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    color: #4a5568;
+}
+
+#modelSelect {
+    flex: 0 0 220px;
+    padding: 8px 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 20px;
+    background: #fff;
+    font-size: 14px;
+    transition: border-color 0.3s;
+}
+
+#modelSelect:focus {
+    border-color: #667eea;
+    outline: none;
+}
+
+#modelSelect:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .input-group {
     display: flex;
     gap: 10px;

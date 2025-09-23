@@ -34,6 +34,11 @@ logger.critical("Critical error!")
 
 # Constants
 DEFAULT_MODEL = "gpt-4o-mini"
+AVAILABLE_MODELS = [
+    "gpt-4o-mini",
+    "gpt-4o",
+    "gpt-4.1-mini"
+]
 SYSTEM_PROMPT = (
     "You are a helpful mathematics tutor. Use LaTeX notation for all "
     "mathematical expressions. For inline math use $...$ and for display "
@@ -132,6 +137,12 @@ class StreamResponse(BaseModel):
     content: Optional[str] = Field(None, description="Response content")
     error: Optional[str] = Field(None, description="Error message")
 
+
+class ModelsResponse(BaseModel):
+    """Response model for available OpenAI models"""
+    models: list[str] = Field(..., description="List of available models")
+    default_model: str = Field(..., description="Default model to use")
+
 @app.get("/", response_class=HTMLResponse)
 async def index():
     """Serve the main chat interface"""
@@ -220,6 +231,25 @@ async def health_check():
         "openai_configured": client is not None,
         "version": "1.0.0"
     }
+
+
+@app.get("/models", response_model=ModelsResponse)
+async def list_models():
+    """Return the list of available OpenAI models"""
+    if not AVAILABLE_MODELS:
+        logger.error("No OpenAI models configured")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="No models configured"
+        )
+
+    if DEFAULT_MODEL not in AVAILABLE_MODELS:
+        logger.warning("DEFAULT_MODEL is not in AVAILABLE_MODELS; using default fallback")
+
+    return ModelsResponse(
+        models=AVAILABLE_MODELS,
+        default_model=DEFAULT_MODEL if DEFAULT_MODEL in AVAILABLE_MODELS else AVAILABLE_MODELS[0]
+    )
 
 def print_startup_info(config: Config):
     """Print application startup information"""
