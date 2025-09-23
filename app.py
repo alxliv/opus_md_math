@@ -34,11 +34,12 @@ logger.critical("Critical error!")
 
 # Constants
 DEFAULT_MODEL = "gpt-4o-mini"
-AVAILABLE_MODELS = [
+AVAILABLE_MODELS = {
     "gpt-4o-mini",
     "gpt-4o",
-    "gpt-4.1-mini"
-]
+    "gpt-4-turbo",
+    "gpt-3.5-turbo",
+}
 SYSTEM_PROMPT = (
     "You are a helpful mathematics tutor. Use LaTeX notation for all "
     "mathematical expressions. For inline math use $...$ and for display "
@@ -206,6 +207,13 @@ async def chat(request: ChatRequest):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="OpenAI API key not configured"
+        )
+
+    if request.model not in AVAILABLE_MODELS:
+        logger.warning(f"Unsupported model requested: {request.model}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Model not supported"
         )
 
     logger.info(f"Chat request: model={request.model}, message_length={len(request.message)}")
