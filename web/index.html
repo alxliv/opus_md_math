@@ -75,7 +75,8 @@
                         {left: '\\(', right: '\\)', display: false},
                         {left: '\\[', right: '\\]', display: true}
                     ],
-                    throwOnError: false
+                    throwOnError: false,
+                    strict: false
                 });
             }, 100);
 
@@ -177,6 +178,29 @@
             return html;
         }
 
+        function renderMathSafely(element) {
+            try {
+                renderMathInElement(element, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false},
+                        {left: '\\(', right: '\\)', display: false},
+                        {left: '\\[', right: '\\]', display: true}
+                    ],
+                    throwOnError: false,
+                    strict: false,
+                    trust: false,
+                    macros: {}
+                });
+
+                // Force reflow to prevent layout issues
+                element.offsetHeight;
+
+            } catch (error) {
+                console.warn('Math rendering error:', error);
+            }
+        }
+
         async function sendMessage() {
             const input = document.getElementById('messageInput');
             const button = document.getElementById('sendButton');
@@ -258,19 +282,13 @@
                                     // Process and display content
                                     aiContent.innerHTML = processContent(accumulatedContent);
 
-                                    // Render math
-                                    renderMathInElement(aiContent, {
-                                        delimiters: [
-                                            {left: '$$', right: '$$', display: true},
-                                            {left: '$', right: '$', display: false},
-                                            {left: '\\(', right: '\\)', display: false},
-                                            {left: '\\[', right: '\\]', display: true}
-                                        ],
-                                        throwOnError: false
-                                    });
+                                    // Render math safely
+                                    renderMathSafely(aiContent);
 
-                                    // Scroll to bottom
-                                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                                    // Scroll to bottom after content update
+                                    requestAnimationFrame(() => {
+                                        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                                    });
                                 }
                                 if (json.error) {
                                     throw new Error(json.error);
@@ -296,6 +314,11 @@
                     modelSelect.disabled = shouldRemainDisabled;
                 }
                 input.focus();
+
+                // Final scroll to ensure visibility
+                requestAnimationFrame(() => {
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                });
             }
         }
 
