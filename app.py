@@ -29,11 +29,11 @@ version = "0.0.1"
 
 logger = setup_logger()
 # Example usage
-logger.debug("Debugging message")
-logger.info("Information message")
-logger.warning("Warning message")
-logger.error("Error message")
-logger.critical("Critical error!")
+# logger.debug("Debugging message")
+# logger.info("Information message")
+# logger.warning("Warning message")
+# logger.error("Error message")
+# logger.critical("Critical error!")
 
 # Constants
 DEFAULT_MODEL = "gpt-4o-mini"
@@ -42,6 +42,7 @@ AVAILABLE_MODELS = {
     "gpt-4o",
     "gpt-4-turbo",
     "gpt-3.5-turbo",
+    "gpt-5-mini"
 }
 SYSTEM_PROMPT = (
     "You are a helpful mathematics tutor. Use LaTeX notation for all "
@@ -155,7 +156,8 @@ async def index(request: Request):
     try:
         return templates.TemplateResponse("index.html", {
             "request": request,
-            "version": version
+            "version": version,
+            "username": "demo"
         })
     except Exception as e:
         logger.error(f"Error serving index page: {e}")
@@ -179,12 +181,16 @@ async def stream_openai_response(message: str, model: str) -> AsyncGenerator[str
             ChatCompletionUserMessageParam(role="user", content=message)
         ]
 
-        stream = await client.chat.completions.create(
-            model=model,
-            messages=messages,
-            stream=True,
-            max_tokens=2000
-        )
+        # Use max_completion_tokens for GPT-5 models, max_tokens for others
+        token_param = "max_completion_tokens" if model.startswith("gpt-5") else "max_tokens"
+        stream_params = {
+            "model": model,
+            "messages": messages,
+            "stream": True,
+            token_param: 2000
+        }
+
+        stream = await client.chat.completions.create(**stream_params)
 
         async for chunk in stream:
             if chunk.choices and chunk.choices[0].delta.content:
