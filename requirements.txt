@@ -10,6 +10,7 @@ python-dotenv>=1.0.0
 
 # Data validation and settings
 pydantic>=2.4.0
+jinja2
 
 # Optional: For development and debugging
 # httpx>=0.25.0  # Already included with openai
