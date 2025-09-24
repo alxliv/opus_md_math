@@ -25,7 +25,7 @@ from openai.types.chat import ChatCompletionSystemMessageParam, ChatCompletionUs
 from dotenv import load_dotenv
 from my_logger import setup_logger;
 
-version = "0.0.1"
+version = "0.0.2"
 
 logger = setup_logger()
 # Example usage
@@ -183,11 +183,12 @@ async def stream_openai_response(message: str, model: str) -> AsyncGenerator[str
 
         # Use max_completion_tokens for GPT-5 models, max_tokens for others
         token_param = "max_completion_tokens" if model.startswith("gpt-5") else "max_tokens"
+        max_tokens = 8000 if model.startswith("gpt-5") else 3000
         stream_params = {
             "model": model,
             "messages": messages,
             "stream": True,
-            token_param: 2000
+            token_param: max_tokens
         }
 
         stream = await client.chat.completions.create(**stream_params)
@@ -200,6 +201,7 @@ async def stream_openai_response(message: str, model: str) -> AsyncGenerator[str
                 yield f"data: {response.model_dump_json()}\n\n"
 
         yield "data: [DONE]\n\n"
+        logger.info("Response streaming completed successfully")
 
     except Exception as e:
         logger.error(f"OpenAI API error: {e}")
@@ -294,7 +296,7 @@ def print_startup_info(config: Config):
     print('- "What is Heaviside step function?"')
     print('- "Derive the quadratic formula"')
     print('- "What is harmonic oscillator?"')
-    print()
+    # what is the Lorentzian function?
 
 
 if __name__ == "__main__":
