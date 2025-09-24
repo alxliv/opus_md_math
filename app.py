@@ -14,15 +14,18 @@ from pathlib import Path
 from typing import AsyncGenerator, Optional
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam
 from dotenv import load_dotenv
 from my_logger import setup_logger;
+
+version = "0.0.1"
 
 logger = setup_logger()
 # Example usage
@@ -45,6 +48,8 @@ SYSTEM_PROMPT = (
     "mathematical expressions. For inline math use $...$ and for display "
     "math use $$...$$.  Provide clear, step-by-step explanations."
 )
+# Template configuration
+templates = Jinja2Templates(directory="web")
 HTML_FILE_PATH = Path("web") / "index.html"
 
 # Global client instance
@@ -145,16 +150,13 @@ class ModelsResponse(BaseModel):
     default_model: str = Field(..., description="Default model to use")
 
 @app.get("/", response_class=HTMLResponse)
-async def index():
+async def index(request: Request):
     """Serve the main chat interface"""
     try:
-        if not HTML_FILE_PATH.exists():
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Frontend file not found"
-            )
-
-        return HTML_FILE_PATH.read_text(encoding="utf-8")
+        return templates.TemplateResponse("index.html", {
+            "request": request,
+            "version": version
+        })
     except Exception as e:
         logger.error(f"Error serving index page: {e}")
         raise HTTPException(
