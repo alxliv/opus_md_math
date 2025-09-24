@@ -233,8 +233,15 @@
             aiMsg.appendChild(aiContent);
             messagesDiv.appendChild(aiMsg);
 
+            // Add waiting indicator
+            const waitingIndicator = document.createElement('div');
+            waitingIndicator.className = 'waiting-indicator';
+            waitingIndicator.innerHTML = '<div class="spinner"></div>Waiting for response...';
+            aiContent.appendChild(waitingIndicator);
+
             // Reset accumulated content
             accumulatedContent = '';
+            let firstResponseReceived = false;
 
             // Scroll to bottom
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -279,6 +286,12 @@
                             try {
                                 const json = JSON.parse(data);
                                 if (json.content) {
+                                    // Remove waiting indicator on first response
+                                    if (!firstResponseReceived) {
+                                        firstResponseReceived = true;
+                                        waitingIndicator.remove();
+                                    }
+
                                     accumulatedContent += json.content;
 
                                     // Process and display content
@@ -307,6 +320,10 @@
                 }
             } catch (error) {
                 console.error('Error:', error);
+                // Remove waiting indicator on error
+                if (waitingIndicator && waitingIndicator.parentNode) {
+                    waitingIndicator.remove();
+                }
                 const aiContent = aiMsg.querySelector('.ai-message');
                 aiContent.innerHTML = '<div class="error-message">Error: ' + escapeHtml(error.message) + '</div>';
             } finally {

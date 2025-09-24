@@ -293,6 +293,7 @@ def print_startup_info(config: Config):
     print('- "Explain Laplace transform"')
     print('- "What is Heaviside step function?"')
     print('- "Derive the quadratic formula"')
+    print('- "What is harmonic oscillator?"')
     print()
 
 
